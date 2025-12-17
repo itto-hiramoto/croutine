@@ -9,7 +9,9 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(SOURCES
     src/task.c
     src/arch/x86_64.c
-    src/m1.c
+    src/worker.c
+    src/mn.c
+    src/main.c
 )
 
 # Include directories
@@ -19,6 +21,10 @@ include_directories(
 
 # Create executable
 add_executable(croutine ${SOURCES})
+
+# pthreads (needed by mn.c and for mutex protection)
+find_package(Threads REQUIRED)
+target_link_libraries(croutine PRIVATE Threads::Threads)
 
 # Set compiler flags for x86_64 assembly
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")

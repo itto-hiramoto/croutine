@@ -1,9 +1,10 @@
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef CROUTINE_TASK_H
+#define CROUTINE_TASK_H
 
-#include "arch/x86_64.h"
+#include <croutine/arch/x86_64.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #define STACK_SIZE (4 * 1024) // 4KB
 
@@ -30,4 +31,4 @@ bool task_queue_pop(struct TaskQueue *queue, struct Task *task);
 uint8_t *create_stack(void);
 void destroy_stack(uint8_t *stack);
 
-#endif // COMMON_H
+#endif // CROUTINE_TASK_H

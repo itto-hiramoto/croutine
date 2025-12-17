@@ -1,5 +1,5 @@
-#ifndef ARCH_X86_64_H
-#define ARCH_X86_64_H
+#ifndef CROUTINE_ARCH_X86_64_H
+#define CROUTINE_ARCH_X86_64_H
 
 #include <stdint.h>
 
@@ -20,4 +20,4 @@ void (*get_task_body(void))(void);
 
 void context_switch(struct Context *old, struct Context *new);
 
-#endif // ARCH_X86_64_H
+#endif // CROUTINE_ARCH_X86_64_H
