@@ -32,7 +32,6 @@ static size_t configured_stack_size = CROUTINE_DEFAULT_STACK_SIZE;
 struct Worker {
     struct Context context;
     void *asan_fake_stack;
-    void *tsan_fiber;
     // The state the current task yielded back to the scheduler with.
     enum TaskState yielded_state;
     bool returned_with_scheduler_lock;
@@ -56,22 +55,18 @@ static struct IoWaitTable io_waits;
 _Thread_local struct Worker worker;
 _Thread_local struct Task *croutine_current_task = NULL;
 
-#if defined(CROUTINE_USE_TSAN)
-void *__tsan_get_current_fiber(void);
-void *__tsan_create_fiber(unsigned flags);
-void __tsan_destroy_fiber(void *fiber);
-void __tsan_switch_to_fiber(void *fiber, unsigned flags);
-
-#define CROUTINE_NO_TSAN __attribute__((no_sanitize_thread))
-#else
-#define CROUTINE_NO_TSAN
-#endif
-
 #if defined(CROUTINE_USE_ASAN)
 void __sanitizer_start_switch_fiber(void **fake_stack_save, const void *bottom,
                                     size_t size);
 void __sanitizer_finish_switch_fiber(void *fake_stack_save,
                                      const void **bottom_old, size_t *size_old);
+
+static void switch_from_scheduler(struct Task *task) {
+    __sanitizer_start_switch_fiber(&worker.asan_fake_stack, task->stack,
+                                   task->stack_size);
+    context_switch(&worker.context, &task->context);
+    __sanitizer_finish_switch_fiber(worker.asan_fake_stack, NULL, NULL);
+}
 
 static void start_switch_from_task(struct Task *task) {
     __sanitizer_start_switch_fiber(&task->asan_fake_stack,
@@ -85,33 +80,12 @@ static void finish_switch_to_task(struct Task *task) {
                                     &task->asan_scheduler_stack_size);
 }
 #else
+static void switch_from_scheduler(struct Task *task) {
+    context_switch(&worker.context, &task->context);
+}
 static void start_switch_from_task(struct Task *task) { (void)task; }
 static void finish_switch_to_task(struct Task *task) { (void)task; }
 #endif
-
-static CROUTINE_NO_TSAN void switch_from_scheduler(struct Task *task) {
-#if defined(CROUTINE_USE_ASAN)
-    __sanitizer_start_switch_fiber(&worker.asan_fake_stack, task->stack,
-                                   task->stack_size);
-#endif
-#if defined(CROUTINE_USE_TSAN)
-    __tsan_switch_to_fiber(task->tsan_fiber, 0);
-#endif
-    context_switch(&worker.context, &task->context);
-#if defined(CROUTINE_USE_ASAN)
-    __sanitizer_finish_switch_fiber(worker.asan_fake_stack, NULL, NULL);
-#endif
-}
-
-static CROUTINE_NO_TSAN void switch_from_task(struct Task *task,
-                                              struct Context *worker_context) {
-    start_switch_from_task(task);
-#if defined(CROUTINE_USE_TSAN)
-    __tsan_switch_to_fiber(worker.tsan_fiber, 0);
-#endif
-    context_switch(&task->context, worker_context);
-    finish_switch_to_task(task);
-}
 
 _Noreturn void worker_fail(const char *message) {
     fprintf(stderr, "%s\n", message);
@@ -124,10 +98,6 @@ static void cleanup_task(struct Task *task) {
     }
 
     task->scheduler.state = TASK_FINISHED;
-#if defined(CROUTINE_USE_TSAN)
-    __tsan_destroy_fiber(task->tsan_fiber);
-    task->tsan_fiber = NULL;
-#endif
     task_cleanup(task);
     free(task);
 }
@@ -392,7 +362,8 @@ static void task_finished(void) {
     }
 
     struct Task *task = croutine_current_task;
-    switch_from_task(task, &worker.context);
+    start_switch_from_task(task);
+    context_switch(&task->context, &worker.context);
 }
 
 void task_entrypoint(void) {
@@ -468,9 +439,6 @@ void worker_deinit(void) {
 }
 
 static void worker_loop_impl(int worker_id) {
-#if defined(CROUTINE_USE_TSAN)
-    worker.tsan_fiber = __tsan_get_current_fiber();
-#endif
     for (;;) {
         struct Task *task = NULL;
         bool checked_ready_io = false;
@@ -563,7 +531,8 @@ static void worker_loop_impl(int worker_id) {
         case TASK_WAITING_CHANNEL:
             break;
         case TASK_FINISHED:
-            cleanup_task(task);
+            task_cleanup(task);
+            free(task);
             break;
         default:
             worker_fail("Unknown task state");
@@ -633,7 +602,9 @@ croutine_io_wait_result worker_park_current_on_io(int fd, uint32_t events) {
     worker.yielded_state = TASK_WAITING_IO;
     worker.returned_with_scheduler_lock = true;
 
-    switch_from_task(task, worker_context);
+    start_switch_from_task(task);
+    context_switch(&task->context, worker_context);
+    finish_switch_to_task(task);
     return task->io_wait.wake_success ? CROUTINE_IO_WAIT_READY
                                       : CROUTINE_IO_WAIT_CLOSED;
 }
@@ -642,7 +613,9 @@ void worker_yield(void) {
     worker.yielded_state = TASK_RUNNABLE;
     worker.returned_with_scheduler_lock = false;
     struct Task *task = croutine_current_task;
-    switch_from_task(task, &worker.context);
+    start_switch_from_task(task);
+    context_switch(&task->context, &worker.context);
+    finish_switch_to_task(task);
 }
 
 void worker_scheduler_lock(void) { pthread_mutex_lock(&scheduler_mutex); }
@@ -667,7 +640,9 @@ bool worker_park_current_on_channel_locked(void) {
     worker.yielded_state = TASK_WAITING_CHANNEL;
     worker.returned_with_scheduler_lock = true;
 
-    switch_from_task(task, worker_context);
+    start_switch_from_task(task);
+    context_switch(&task->context, worker_context);
+    finish_switch_to_task(task);
     return task->channel_wait.wake_success;
 }
 
@@ -730,14 +705,6 @@ bool worker_spawn(croutine_task_fn fn, const void *arg, size_t arg_size,
     task->io_wait.events = CROUTINE_IO_EVENT_NONE;
     task->io_wait.wake_success = false;
     task->channel_wait.wake_success = false;
-#if defined(CROUTINE_USE_TSAN)
-    task->tsan_fiber = __tsan_create_fiber(0);
-    if (!task->tsan_fiber) {
-        task_cleanup(task);
-        free(task);
-        return false;
-    }
-#endif
     create_context(&task->context, fn, task_arg, stack_top);
 
     if (is_main) {
@@ -745,7 +712,8 @@ bool worker_spawn(croutine_task_fn fn, const void *arg, size_t arg_size,
         if (main_spawned) {
             pthread_mutex_unlock(&main_mutex);
             fprintf(stderr, "Main task already spawned\n");
-            cleanup_task(task);
+            task_cleanup(task);
+            free(task);
             return false;
         }
         main_spawned = true;
@@ -760,7 +728,8 @@ bool worker_spawn(croutine_task_fn fn, const void *arg, size_t arg_size,
             main_spawned = false;
             pthread_mutex_unlock(&main_mutex);
         }
-        cleanup_task(task);
+        task_cleanup(task);
+        free(task);
         return false;
     }
     const bool should_wake_poller = poller_waiter_active;
@@ -776,7 +745,8 @@ bool worker_spawn(croutine_task_fn fn, const void *arg, size_t arg_size,
             main_spawned = false;
             pthread_mutex_unlock(&main_mutex);
         }
-        cleanup_task(task);
+        task_cleanup(task);
+        free(task);
         return false;
     }
 

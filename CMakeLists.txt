@@ -45,12 +45,12 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 set(CROUTINE_SANITIZER "" CACHE STRING
-    "Sanitizer for tests and examples: address, undefined, or thread")
+    "Sanitizer for tests and examples: address or undefined")
 if(CROUTINE_SANITIZER)
     if(NOT CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
         message(FATAL_ERROR "CROUTINE_SANITIZER requires GCC or Clang")
     endif()
-    if(NOT CROUTINE_SANITIZER MATCHES "^(address|undefined|thread)$")
+    if(NOT CROUTINE_SANITIZER MATCHES "^(address|undefined)$")
         message(FATAL_ERROR "Unsupported sanitizer: ${CROUTINE_SANITIZER}")
     endif()
     target_compile_options(croutine PRIVATE
@@ -58,8 +58,6 @@ if(CROUTINE_SANITIZER)
     target_link_libraries(croutine PUBLIC -fsanitize=${CROUTINE_SANITIZER})
     if(CROUTINE_SANITIZER STREQUAL "address")
         target_compile_definitions(croutine PRIVATE CROUTINE_USE_ASAN=1)
-    elseif(CROUTINE_SANITIZER STREQUAL "thread")
-        target_compile_definitions(croutine PRIVATE CROUTINE_USE_TSAN=1)
     endif()
 endif()
 

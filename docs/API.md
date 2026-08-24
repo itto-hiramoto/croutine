@@ -27,8 +27,8 @@ all tasks parked on that descriptor, preventing descriptor-number reuse from
 delivering stale readiness.
 
 Tests are registered with CTest. Configure with
-`-DCROUTINE_SANITIZER=address`, `undefined`, or `thread` to instrument the
-runtime with the corresponding compiler sanitizer.
+`-DCROUTINE_SANITIZER=address` or `undefined` instruments the runtime with the
+corresponding compiler sanitizer.
 
 The library does not install process-wide signal handlers. Scheduler-aware
 mutex and wait-group APIs are intentionally deferred: blocking worker pthreads
