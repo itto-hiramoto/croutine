@@ -55,7 +55,10 @@ jobs:
       CC: gcc
       ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
-      TSAN_OPTIONS: halt_on_error=1
+      # The scheduler intentionally transfers a pthread mutex between fibers
+      # on the same OS thread while parking; keep race detection enabled while
+      # disabling TSan's fiber-level mutex ownership diagnostic.
+      TSAN_OPTIONS: halt_on_error=1:report_mutex_bugs=0
     steps:
       - uses: actions/checkout@v6
       - name: Configure

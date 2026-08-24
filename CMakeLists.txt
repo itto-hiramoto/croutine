@@ -58,6 +58,8 @@ if(CROUTINE_SANITIZER)
     target_link_libraries(croutine PUBLIC -fsanitize=${CROUTINE_SANITIZER})
     if(CROUTINE_SANITIZER STREQUAL "address")
         target_compile_definitions(croutine PRIVATE CROUTINE_USE_ASAN=1)
+    elseif(CROUTINE_SANITIZER STREQUAL "thread")
+        target_compile_definitions(croutine PRIVATE CROUTINE_USE_TSAN=1)
     endif()
 endif()
 
