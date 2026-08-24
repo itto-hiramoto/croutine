@@ -235,7 +235,8 @@ static void runtime_main(void *arg) {
     check(croutine_spawn(reused_readiness_waiter, &reused_fd),
           "spawn reused readiness waiter");
     croutine_yield();
-    check(!atomic_load(&reused_wait_ready), "ignore stale readiness after reuse");
+    check(!atomic_load(&reused_wait_ready),
+          "ignore stale readiness after reuse");
     check(write(new_pair[1], "n", 1) == 1, "wake reused descriptor");
     while (!atomic_load(&reused_wait_ready) || !atomic_load(&old_wait_done)) {
         croutine_yield();

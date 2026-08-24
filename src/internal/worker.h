@@ -1,8 +1,8 @@
 #ifndef CROUTINE_WORKER_H
 #define CROUTINE_WORKER_H
 
-#include <croutine/runtime.h>
 #include "internal/task.h"
+#include <croutine/runtime.h>
 #include <stdbool.h>
 #include <stdint.h>
 

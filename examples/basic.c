@@ -2,9 +2,7 @@
 
 #include <stdio.h>
 
-static void child(void *arg) {
-    printf("child: %s\n", (const char *)arg);
-}
+static void child(void *arg) { printf("child: %s\n", (const char *)arg); }
 
 static void application(void *arg) {
     (void)arg;

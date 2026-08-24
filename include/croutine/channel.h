@@ -46,10 +46,10 @@ croutine_channel *croutine_channel_create(size_t elem_size, size_t capacity);
 /* The channel must be closed and have no outstanding operations. */
 bool croutine_channel_destroy(croutine_channel *channel);
 croutine_channel_send_result croutine_channel_send(croutine_channel *channel,
-                                                    const void *value);
+                                                   const void *value);
 bool croutine_channel_try_send(croutine_channel *channel, const void *value);
 croutine_channel_recv_result croutine_channel_recv(croutine_channel *channel,
-                                                    void *out);
+                                                   void *out);
 bool croutine_channel_try_recv(croutine_channel *channel, void *out);
 void croutine_channel_close(croutine_channel *channel);
 bool croutine_channel_is_closed(croutine_channel *channel);

@@ -13,14 +13,15 @@ int main(void) {
     if (!task_queue_init(&queue, 1)) {
         return 1;
     }
-    if (!task_queue_push(&queue, &first) ||
-        !task_queue_push(&queue, &first) || queue.count != 1) {
+    if (!task_queue_push(&queue, &first) || !task_queue_push(&queue, &first) ||
+        queue.count != 1) {
         return 1;
     }
     if (!task_queue_push(&queue, &second) || queue.capacity < 2) {
         return 1;
     }
-    if (!task_queue_pop(&queue, &popped) || popped != &first || first.scheduler.queued) {
+    if (!task_queue_pop(&queue, &popped) || popped != &first ||
+        first.scheduler.queued) {
         return 1;
     }
     if (!task_queue_pop(&queue, &popped) || popped != &second ||

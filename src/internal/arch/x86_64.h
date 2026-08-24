@@ -22,5 +22,3 @@ void *get_task_arg(void);
 void context_switch(struct Context *old, struct Context *new);
 
 #endif // CROUTINE_ARCH_X86_64_H
-
-

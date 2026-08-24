@@ -1,6 +1,6 @@
+#include "internal/worker.h"
 #include "internal/poller.h"
 #include "internal/task.h"
-#include "internal/worker.h"
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -56,11 +56,10 @@ _Thread_local struct Worker worker;
 _Thread_local struct Task *croutine_current_task = NULL;
 
 #if defined(CROUTINE_USE_ASAN)
-void __sanitizer_start_switch_fiber(void **fake_stack_save,
-                                    const void *bottom, size_t size);
+void __sanitizer_start_switch_fiber(void **fake_stack_save, const void *bottom,
+                                    size_t size);
 void __sanitizer_finish_switch_fiber(void *fake_stack_save,
-                                     const void **bottom_old,
-                                     size_t *size_old);
+                                     const void **bottom_old, size_t *size_old);
 
 static void switch_from_scheduler(struct Task *task) {
     __sanitizer_start_switch_fiber(&worker.asan_fake_stack, task->stack,
@@ -381,7 +380,8 @@ bool worker_init(void) {
 }
 
 void worker_configure_stack_size(size_t stack_size) {
-    configured_stack_size = stack_size ? stack_size : CROUTINE_DEFAULT_STACK_SIZE;
+    configured_stack_size =
+        stack_size ? stack_size : CROUTINE_DEFAULT_STACK_SIZE;
 }
 
 void worker_request_shutdown(void) {
@@ -618,21 +618,13 @@ void worker_yield(void) {
     finish_switch_to_task(task);
 }
 
-void worker_scheduler_lock(void) {
-    pthread_mutex_lock(&scheduler_mutex);
-}
+void worker_scheduler_lock(void) { pthread_mutex_lock(&scheduler_mutex); }
 
-void worker_scheduler_unlock(void) {
-    pthread_mutex_unlock(&scheduler_mutex);
-}
+void worker_scheduler_unlock(void) { pthread_mutex_unlock(&scheduler_mutex); }
 
-bool worker_shutdown_requested_locked(void) {
-    return shutdown_requested;
-}
+bool worker_shutdown_requested_locked(void) { return shutdown_requested; }
 
-struct Task *worker_current_task(void) {
-    return croutine_current_task;
-}
+struct Task *worker_current_task(void) { return croutine_current_task; }
 
 bool worker_park_current_on_channel_locked(void) {
     if (!croutine_current_task || shutdown_requested) {

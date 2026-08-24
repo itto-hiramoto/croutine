@@ -2,10 +2,10 @@
 #include "internal/task.h"
 
 #include <errno.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <unistd.h>
@@ -107,7 +107,8 @@ static void drain_wake_fd(void) {
     // Reading drains the pending wakeup count back to zero, so epoll will not
     // keep reporting wake_fd as readable forever.
     if (eventfd_read(wake_fd, &value) != 0 && errno != EAGAIN) {
-        fprintf(stderr, "Failed to drain poller wake fd: %s\n", strerror(errno));
+        fprintf(stderr, "Failed to drain poller wake fd: %s\n",
+                strerror(errno));
     }
 }
 
@@ -118,7 +119,8 @@ bool croutine_poller_init(void) {
 
     poller_fd = epoll_create1(EPOLL_CLOEXEC);
     if (poller_fd < 0) {
-        fprintf(stderr, "Failed to create epoll instance: %s\n", strerror(errno));
+        fprintf(stderr, "Failed to create epoll instance: %s\n",
+                strerror(errno));
         return false;
     }
 
@@ -171,7 +173,8 @@ static bool poller_set_locked(int fd, uint32_t old_events,
     }
 
     if (new_events == CROUTINE_IO_EVENT_NONE) {
-        if (epoll_ctl(poller_fd, EPOLL_CTL_DEL, fd, NULL) == 0 || errno == ENOENT) {
+        if (epoll_ctl(poller_fd, EPOLL_CTL_DEL, fd, NULL) == 0 ||
+            errno == ENOENT) {
             if ((size_t)fd < fd_table_capacity) {
                 fd_registered[fd] = 0;
                 fd_generations[fd]++;
@@ -209,7 +212,8 @@ bool croutine_poller_set(int fd, uint32_t old_events, uint32_t new_events) {
     return result;
 }
 
-int croutine_poller_wait(struct CroutinePollEvent *events, int max_events, int timeout_ms) {
+int croutine_poller_wait(struct CroutinePollEvent *events, int max_events,
+                         int timeout_ms) {
     if (!events || max_events <= 0) {
         errno = EINVAL;
         return -1;

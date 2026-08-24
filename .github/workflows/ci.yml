@@ -13,6 +13,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check formatting
+        run: git ls-files '*.c' '*.h' | xargs clang-format --dry-run --Werror
+
   linux:
     name: Linux (${{ matrix.compiler }})
     runs-on: ubuntu-latest

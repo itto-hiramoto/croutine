@@ -1,6 +1,6 @@
-#include <croutine/channel.h>
 #include "internal/task.h"
 #include "internal/worker.h"
+#include <croutine/channel.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -20,15 +20,16 @@ struct CroutineSelectState;
 struct croutine_channel;
 
 struct ChannelWaiter {
-    int kind;                      // ChannelWaiterKind
-    int op;                        // CroutineSelectOp (SEND/RECV)
+    int kind; // ChannelWaiterKind
+    int op;   // CroutineSelectOp (SEND/RECV)
     struct ChannelWaiter *prev;
     struct ChannelWaiter *next;
-    struct croutine_channel *channel;  // queue this waiter is parked on (or NULL once removed)
-    struct Task *task;             // task to wake
-    void *value_slot;              // send: source; recv: destination
-    struct CroutineSelectState *state;  // NULL for regular waiters
-    uint32_t case_index;             // for select waiters
+    struct croutine_channel
+        *channel;      // queue this waiter is parked on (or NULL once removed)
+    struct Task *task; // task to wake
+    void *value_slot;  // send: source; recv: destination
+    struct CroutineSelectState *state; // NULL for regular waiters
+    uint32_t case_index;               // for select waiters
 };
 
 struct ChannelWaitQueue {
@@ -158,8 +159,8 @@ static void buffer_pop(struct croutine_channel *channel, void *out) {
 
 // Pop the next waiter still eligible for waking (regular, or select whose
 // shared state isn't `done`). Returns NULL if the queue is exhausted.
-static struct ChannelWaiter *pop_live_waiter_locked(
-    struct ChannelWaitQueue *queue) {
+static struct ChannelWaiter *
+pop_live_waiter_locked(struct ChannelWaitQueue *queue) {
     for (;;) {
         struct ChannelWaiter *w = wait_queue_pop_head(queue);
         if (!w) {
@@ -248,7 +249,8 @@ static void wake_all_as_closed_locked(struct ChannelWaitQueue *queue) {
 // -----------------------------------------------------------------------------
 
 // Internal sentinel used only by try_send_locked, distinct from the public
-// croutine_channelSendResult values. Callers translate it to a parking decision.
+// croutine_channelSendResult values. Callers translate it to a parking
+// decision.
 #define TRY_SEND_WOULD_BLOCK 2
 
 static int32_t try_send_locked(struct croutine_channel *channel,
@@ -294,7 +296,7 @@ static int32_t try_recv_locked(struct croutine_channel *channel, void *out) {
 // -----------------------------------------------------------------------------
 
 struct croutine_channel *croutine_channel_create(size_t elem_size,
-                                                  size_t capacity) {
+                                                 size_t capacity) {
     if (capacity != 0 && elem_size > SIZE_MAX / capacity) {
         return NULL;
     }
@@ -560,8 +562,8 @@ static _Thread_local uint64_t select_rng_state = 0;
 
 static uint64_t select_rng_next(void) {
     if (select_rng_state == 0) {
-        select_rng_state = (uint64_t)(uintptr_t)worker_current_task()
-                           ^ ((uint64_t)time(NULL) * 0x9E3779B97F4A7C15ULL);
+        select_rng_state = (uint64_t)(uintptr_t)worker_current_task() ^
+                           ((uint64_t)time(NULL) * 0x9E3779B97F4A7C15ULL);
         if (select_rng_state == 0) {
             select_rng_state = 0x9E3779B97F4A7C15ULL;
         }

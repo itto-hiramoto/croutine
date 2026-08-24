@@ -45,8 +45,8 @@ void *get_task_arg(void) {
     return (void *)arg;
 }
 
-void create_context(struct Context *context, void (*task_body)(void *), void *arg,
-                    uint64_t stack_top) {
+void create_context(struct Context *context, void (*task_body)(void *),
+                    void *arg, uint64_t stack_top) {
     // Set RSP to a safe position below the guard page
     // Reserve space for return address (8 bytes) and ensure 16-byte alignment
     // Use a larger offset to ensure we're well below the guard page boundary

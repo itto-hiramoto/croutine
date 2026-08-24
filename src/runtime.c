@@ -1,6 +1,6 @@
-#include <croutine/runtime.h>
 #include "internal/task.h"
 #include "internal/worker.h"
+#include <croutine/runtime.h>
 
 #include <errno.h>
 #include <pthread.h>
@@ -121,6 +121,4 @@ croutine_io_wait_result croutine_io_wait_writable(int fd) {
     return worker_park_current_on_io(fd, CROUTINE_IO_EVENT_WRITE);
 }
 
-void croutine_io_forget_fd(int fd) {
-    worker_forget_fd(fd);
-}
+void croutine_io_forget_fd(int fd) { worker_forget_fd(fd); }

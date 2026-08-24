@@ -135,7 +135,8 @@ static void drain_wake_fd(void) {
             return;
         }
 
-        fprintf(stderr, "Failed to drain poller wake pipe: %s\n", strerror(errno));
+        fprintf(stderr, "Failed to drain poller wake pipe: %s\n",
+                strerror(errno));
         return;
     }
 }
@@ -154,8 +155,8 @@ static uint32_t translate_ready_event(const struct kevent *event) {
     return ready;
 }
 
-static int merge_ready_event(struct CroutinePollEvent *events, int count, int fd,
-                             uint32_t ready) {
+static int merge_ready_event(struct CroutinePollEvent *events, int count,
+                             int fd, uint32_t ready) {
     for (int i = 0; i < count; ++i) {
         if (events[i].fd == fd) {
             events[i].events |= ready;
@@ -175,12 +176,14 @@ bool croutine_poller_init(void) {
 
     poller_fd = kqueue();
     if (poller_fd < 0) {
-        fprintf(stderr, "Failed to create kqueue instance: %s\n", strerror(errno));
+        fprintf(stderr, "Failed to create kqueue instance: %s\n",
+                strerror(errno));
         return false;
     }
 
     if (!create_wake_pipe()) {
-        fprintf(stderr, "Failed to create poller wake pipe: %s\n", strerror(errno));
+        fprintf(stderr, "Failed to create poller wake pipe: %s\n",
+                strerror(errno));
         close_if_open(&poller_fd);
         return false;
     }
@@ -222,7 +225,7 @@ bool croutine_poller_set(int fd, uint32_t old_events, uint32_t new_events) {
 }
 
 int croutine_poller_wait(struct CroutinePollEvent *events, int max_events,
-                      int timeout_ms) {
+                         int timeout_ms) {
     if (!events || max_events <= 0) {
         errno = EINVAL;
         return -1;
@@ -240,7 +243,8 @@ int croutine_poller_wait(struct CroutinePollEvent *events, int max_events,
 
     int ready;
     for (;;) {
-        ready = kevent(poller_fd, NULL, 0, ready_events, max_events, timeout_ptr);
+        ready =
+            kevent(poller_fd, NULL, 0, ready_events, max_events, timeout_ptr);
         if (ready >= 0) {
             break;
         }
@@ -273,7 +277,8 @@ bool croutine_poller_wake(void) {
     const uint8_t byte = 1;
 
     for (;;) {
-        if (write(wake_write_fd, &byte, sizeof(byte)) == (ssize_t)sizeof(byte)) {
+        if (write(wake_write_fd, &byte, sizeof(byte)) ==
+            (ssize_t)sizeof(byte)) {
             return true;
         }
         if (errno == EINTR) {
@@ -287,4 +292,3 @@ bool croutine_poller_wake(void) {
         return false;
     }
 }
-
