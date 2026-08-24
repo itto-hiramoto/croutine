@@ -13,10 +13,11 @@ struct Context {
     uint64_t r15;
 };
 
-void create_context(struct Context *context, void (*wrapper)(void),
-                    void (*fn)(void), uint64_t stack_top);
+void create_context(struct Context *context, void (*fn)(void *), void *arg,
+                    uint64_t stack_top);
 
-void (*get_task_body(void))(void);
+void (*get_task_body(void))(void *);
+void *get_task_arg(void);
 
 void context_switch(struct Context *old, struct Context *new);
 

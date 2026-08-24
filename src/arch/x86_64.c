@@ -1,5 +1,7 @@
-#include <croutine/arch/x86_64.h>
+#include "internal/arch/x86_64.h"
 #include <stdio.h>
+
+extern void task_entrypoint(void);
 
 // Mark the function as naked so the compiler does not emit a prologue/epilogue.
 // We do all stack/register management manually; a regular prologue would
@@ -31,15 +33,20 @@ __attribute__((naked)) void context_switch(struct Context *old
         // Continue execution at the return address on the new stack
         "ret\n\t");
 }
-
-void (*get_task_body(void))(void) {
+void (*get_task_body(void))(void *) {
     uint64_t fn;
     __asm__ volatile("movq %%r15, %0\n\t" : "=r"(fn));
-    return (void (*)(void))fn;
+    return (void (*)(void *))fn;
 }
 
-void create_context(struct Context *context, void (*task_entrypoint)(void),
-                    void (*task_body)(void), uint64_t stack_top) {
+void *get_task_arg(void) {
+    uint64_t arg;
+    __asm__ volatile("movq %%r14, %0\n\t" : "=r"(arg));
+    return (void *)arg;
+}
+
+void create_context(struct Context *context, void (*task_body)(void *),
+                    void *arg, uint64_t stack_top) {
     // Set RSP to a safe position below the guard page
     // Reserve space for return address (8 bytes) and ensure 16-byte alignment
     // Use a larger offset to ensure we're well below the guard page boundary
@@ -48,13 +55,13 @@ void create_context(struct Context *context, void (*task_entrypoint)(void),
     rsp = rsp & ~0x0F;
 
     // Store the function pointer as the return address on the stack
-    *((void **)rsp) = task_entrypoint;
+    *((uint64_t *)rsp) = (uint64_t)task_entrypoint;
 
     context->rsp = rsp;
     context->rbp = 0;
     context->rbx = 0;
     context->r12 = 0;
     context->r13 = 0;
-    context->r14 = 0;
+    context->r14 = (uint64_t)arg;
     context->r15 = (uint64_t)task_body;
 }
