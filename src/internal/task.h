@@ -60,6 +60,7 @@ struct Task {
     void *asan_fake_stack;
     const void *asan_scheduler_stack;
     size_t asan_scheduler_stack_size;
+    void *tsan_fiber;
     struct TaskSchedulerState scheduler;
     struct TaskIoWaitState io_wait;
     struct TaskChannelWaitState channel_wait;

@@ -50,11 +50,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        sanitizer: [address, undefined]
+        sanitizer: [address, undefined, thread]
     env:
       CC: gcc
       ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+      # A task can park while holding the scheduler mutex. The scheduler fiber
+      # then unlocks it on the same OS thread, which is valid for pthreads but
+      # looks like cross-fiber ownership to TSan.
+      TSAN_OPTIONS: halt_on_error=1:report_mutex_bugs=0
     steps:
       - uses: actions/checkout@v6
       - name: Configure
