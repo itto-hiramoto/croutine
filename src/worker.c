@@ -104,13 +104,24 @@ static CROUTINE_NO_TSAN void switch_from_scheduler(struct Task *task) {
 }
 
 static CROUTINE_NO_TSAN void switch_from_task(struct Task *task,
-                                              struct Context *worker_context) {
+                                              struct Context *worker_context,
+                                              bool holds_scheduler_lock) {
     start_switch_from_task(task);
 #if defined(CROUTINE_USE_TSAN)
-    __tsan_switch_to_fiber(worker.tsan_fiber, 0);
+    if (!holds_scheduler_lock) {
+        __tsan_switch_to_fiber(worker.tsan_fiber, 0);
+    }
+#else
+    (void)holds_scheduler_lock;
 #endif
     context_switch(&task->context, worker_context);
     finish_switch_to_task(task);
+}
+
+static CROUTINE_NO_TSAN void finish_deferred_switch_to_scheduler(void) {
+#if defined(CROUTINE_USE_TSAN)
+    __tsan_switch_to_fiber(worker.tsan_fiber, 0);
+#endif
 }
 
 _Noreturn void worker_fail(const char *message) {
@@ -392,7 +403,7 @@ static void task_finished(void) {
     }
 
     struct Task *task = croutine_current_task;
-    switch_from_task(task, &worker.context);
+    switch_from_task(task, &worker.context, false);
 }
 
 void task_entrypoint(void) {
@@ -538,6 +549,7 @@ static void worker_loop_impl(int worker_id) {
 
         if (returned_with_scheduler_lock) {
             pthread_mutex_unlock(&scheduler_mutex);
+            finish_deferred_switch_to_scheduler();
         }
 
         pthread_mutex_lock(&scheduler_mutex);
@@ -633,7 +645,7 @@ croutine_io_wait_result worker_park_current_on_io(int fd, uint32_t events) {
     worker.yielded_state = TASK_WAITING_IO;
     worker.returned_with_scheduler_lock = true;
 
-    switch_from_task(task, worker_context);
+    switch_from_task(task, worker_context, true);
     return task->io_wait.wake_success ? CROUTINE_IO_WAIT_READY
                                       : CROUTINE_IO_WAIT_CLOSED;
 }
@@ -642,7 +654,7 @@ void worker_yield(void) {
     worker.yielded_state = TASK_RUNNABLE;
     worker.returned_with_scheduler_lock = false;
     struct Task *task = croutine_current_task;
-    switch_from_task(task, &worker.context);
+    switch_from_task(task, &worker.context, false);
 }
 
 void worker_scheduler_lock(void) { pthread_mutex_lock(&scheduler_mutex); }
@@ -667,7 +679,7 @@ bool worker_park_current_on_channel_locked(void) {
     worker.yielded_state = TASK_WAITING_CHANNEL;
     worker.returned_with_scheduler_lock = true;
 
-    switch_from_task(task, worker_context);
+    switch_from_task(task, worker_context, true);
     return task->channel_wait.wake_success;
 }
 
