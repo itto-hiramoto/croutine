@@ -79,6 +79,10 @@ if(BUILD_TESTING)
     target_link_libraries(croutine_lifecycle_tests PRIVATE croutine::croutine)
     add_test(NAME croutine_lifecycle COMMAND croutine_lifecycle_tests)
 
+    add_executable(croutine_run_tests tests/run_test.c)
+    target_link_libraries(croutine_run_tests PRIVATE croutine::croutine)
+    add_test(NAME croutine_run COMMAND croutine_run_tests)
+
     add_executable(croutine_migration_tests tests/migration_test.c)
     target_link_libraries(croutine_migration_tests PRIVATE croutine::croutine)
     add_test(NAME croutine_migration COMMAND croutine_migration_tests)

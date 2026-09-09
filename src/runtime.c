@@ -17,6 +17,17 @@ static bool runtime_initialized;
 static bool runtime_ever_initialized;
 static bool runtime_ran;
 
+int croutine_run(const croutine_runtime_config *config,
+                 croutine_task_fn main_fn, void *arg) {
+    if (!main_fn || !croutine_runtime_init(config)) {
+        return -1;
+    }
+
+    int result = croutine_runtime_run(main_fn, arg);
+    croutine_runtime_shutdown();
+    return result;
+}
+
 bool croutine_runtime_init(const croutine_runtime_config *config) {
     if (runtime_initialized || runtime_ever_initialized) {
         return false;

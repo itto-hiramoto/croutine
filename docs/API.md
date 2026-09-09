@@ -1,7 +1,9 @@
 # croutine C API
 
-`croutine` is a process-wide, one-shot runtime. Call
-`croutine_runtime_init`, then `croutine_runtime_run`, and finally
+`croutine` is a process-wide, one-shot runtime. For normal use, call
+`croutine_run`; it initializes the runtime, runs the main task, and shuts the
+runtime down. Embedders that need explicit lifecycle control can instead call
+`croutine_runtime_init`, `croutine_runtime_run`, and
 `croutine_runtime_shutdown`. Worker count and per-task usable stack size are
 selected with `croutine_runtime_config`; zero selects the documented default.
 Stacks are `mmap` allocations with a protected guard page on POSIX systems.

@@ -13,10 +13,5 @@ static void application(void *arg) {
 int main(void) {
     croutine_runtime_config config = {0};
     config.worker_count = 2;
-    if (!croutine_runtime_init(&config)) {
-        return 1;
-    }
-    int result = croutine_runtime_run(application, NULL);
-    croutine_runtime_shutdown();
-    return result;
+    return croutine_run(&config, application, NULL);
 }

@@ -27,6 +27,9 @@ typedef enum croutine_io_wait_result {
  * are copied by the runtime and released when their task is destroyed.
  * Channels are caller-owned and may be destroyed after runtime shutdown.
  */
+int croutine_run(const croutine_runtime_config *config,
+                 croutine_task_fn main_fn, void *arg);
+
 bool croutine_runtime_init(const croutine_runtime_config *config);
 int croutine_runtime_run(croutine_task_fn main_fn, void *arg);
 void croutine_runtime_request_shutdown(void);
