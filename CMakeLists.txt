@@ -94,6 +94,15 @@ if(BUILD_TESTING)
     add_test(NAME croutine_external_wake COMMAND croutine_external_wake_tests)
     set_tests_properties(croutine_external_wake PROPERTIES TIMEOUT 10)
 
+    find_library(CROUTINE_MATH_LIBRARY m)
+    add_executable(croutine_fenv_tests tests/fenv_test.c)
+    target_link_libraries(croutine_fenv_tests PRIVATE croutine::croutine)
+    if(CROUTINE_MATH_LIBRARY)
+        target_link_libraries(croutine_fenv_tests PRIVATE
+            ${CROUTINE_MATH_LIBRARY})
+    endif()
+    add_test(NAME croutine_fenv COMMAND croutine_fenv_tests)
+
     add_executable(croutine_queue_tests tests/task_queue_test.c src/task.c)
     target_include_directories(croutine_queue_tests PRIVATE include src)
     if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
