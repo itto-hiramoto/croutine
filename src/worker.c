@@ -61,6 +61,10 @@ void *__tsan_get_current_fiber(void);
 void *__tsan_create_fiber(unsigned flags);
 void __tsan_destroy_fiber(void *fiber);
 void __tsan_switch_to_fiber(void *fiber, unsigned flags);
+void __tsan_mutex_pre_lock(void *addr, unsigned flags);
+void __tsan_mutex_post_lock(void *addr, unsigned flags, int recursion);
+void __tsan_mutex_pre_unlock(void *addr, unsigned flags);
+int __tsan_mutex_post_unlock(void *addr, unsigned flags);
 
 #define CROUTINE_NO_TSAN __attribute__((no_sanitize_thread))
 #else
@@ -108,9 +112,12 @@ static CROUTINE_NO_TSAN void switch_from_task(struct Task *task,
                                               bool holds_scheduler_lock) {
     start_switch_from_task(task);
 #if defined(CROUTINE_USE_TSAN)
-    if (!holds_scheduler_lock) {
-        __tsan_switch_to_fiber(worker.tsan_fiber, 0);
+    // The scheduler fiber unlocks the mutex this task fiber locked.
+    if (holds_scheduler_lock) {
+        __tsan_mutex_pre_unlock(&scheduler_mutex, 0);
+        __tsan_mutex_post_unlock(&scheduler_mutex, 0);
     }
+    __tsan_switch_to_fiber(worker.tsan_fiber, 0);
 #else
     (void)holds_scheduler_lock;
 #endif
@@ -118,9 +125,10 @@ static CROUTINE_NO_TSAN void switch_from_task(struct Task *task,
     finish_switch_to_task(task);
 }
 
-static CROUTINE_NO_TSAN void finish_deferred_switch_to_scheduler(void) {
+static CROUTINE_NO_TSAN void adopt_scheduler_lock_from_task(void) {
 #if defined(CROUTINE_USE_TSAN)
-    __tsan_switch_to_fiber(worker.tsan_fiber, 0);
+    __tsan_mutex_pre_lock(&scheduler_mutex, 0);
+    __tsan_mutex_post_lock(&scheduler_mutex, 0, 0);
 #endif
 }
 
@@ -548,8 +556,8 @@ static void worker_loop_impl(int worker_id) {
         worker.returned_with_scheduler_lock = false;
 
         if (returned_with_scheduler_lock) {
+            adopt_scheduler_lock_from_task();
             pthread_mutex_unlock(&scheduler_mutex);
-            finish_deferred_switch_to_scheduler();
         }
 
         pthread_mutex_lock(&scheduler_mutex);
