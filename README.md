@@ -40,6 +40,10 @@ See [`docs/API.md`](docs/API.md) for lifecycle and ownership rules.
 Development is focused on hardening the standalone runtime and extending its
 portable scheduler-aware synchronization primitives.
 
-The runtime originated as an experiment for the Kaede programming language.
-Kaede's newer runtime contains later scheduler and I/O work that can inform
-croutine's standalone implementation.
+## Origin
+
+croutine was written as the runtime for the
+[Kaede programming language](https://github.com/itto-hiramoto/kaede), whose
+runtime now lives in that repository's `library/runtime`. This repository
+packages the runtime as a standalone C library, so C programs can use it
+without Kaede.
