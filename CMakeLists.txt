@@ -53,8 +53,9 @@ if(CROUTINE_SANITIZER)
     if(NOT CROUTINE_SANITIZER MATCHES "^(address|undefined|thread)$")
         message(FATAL_ERROR "Unsupported sanitizer: ${CROUTINE_SANITIZER}")
     endif()
-    target_compile_options(croutine PRIVATE
-        -fsanitize=${CROUTINE_SANITIZER} -fno-omit-frame-pointer)
+    target_compile_options(croutine PUBLIC
+        $<BUILD_INTERFACE:-fsanitize=${CROUTINE_SANITIZER}>
+        $<BUILD_INTERFACE:-fno-omit-frame-pointer>)
     target_link_libraries(croutine PUBLIC -fsanitize=${CROUTINE_SANITIZER})
     if(CROUTINE_SANITIZER STREQUAL "address")
         target_compile_definitions(croutine PRIVATE CROUTINE_USE_ASAN=1)
