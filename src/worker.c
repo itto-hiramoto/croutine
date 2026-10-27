@@ -18,6 +18,7 @@ static pthread_once_t runtime_init_once = PTHREAD_ONCE_INIT;
 static bool runtime_init_ok = false;
 static bool shutdown_requested = false;
 static bool poller_waiter_active = false;
+// Workers blocked in pthread_cond_wait on scheduler_cond.
 static size_t idle_workers = 0;
 static pthread_mutex_t main_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t main_cond = PTHREAD_COND_INITIALIZER;
@@ -708,6 +709,8 @@ bool worker_wake_task_locked(struct Task *task, bool success) {
         return false;
     }
 
+    // An idle worker picks the task up after the signal. A worker blocked in
+    // the poller does not see the signal, so wake it when no worker is idle.
     pthread_cond_signal(&scheduler_cond);
     if (idle_workers == 0 && poller_waiter_active) {
         (void)croutine_poller_wake();
