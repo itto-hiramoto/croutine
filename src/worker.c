@@ -389,7 +389,9 @@ static void runtime_init_impl(void) {
     runtime_init_ok = true;
 }
 
-static void task_finished(void) {
+// A task may resume on another worker, so thread-local state is only read
+// after `fn` returns from this separate, non-inlined frame.
+static __attribute__((noinline)) void task_finished(void) {
     if (!croutine_current_task) {
         return;
     }
@@ -671,7 +673,9 @@ void worker_scheduler_unlock(void) { pthread_mutex_unlock(&scheduler_mutex); }
 
 bool worker_shutdown_requested_locked(void) { return shutdown_requested; }
 
-struct Task *worker_current_task(void) { return croutine_current_task; }
+__attribute__((noinline)) struct Task *worker_current_task(void) {
+    return croutine_current_task;
+}
 
 bool worker_park_current_on_channel_locked(void) {
     if (!croutine_current_task || shutdown_requested) {
