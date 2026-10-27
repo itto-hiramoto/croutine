@@ -28,6 +28,11 @@ Call `croutine_io_forget_fd` before `close`; it removes poller interest and wake
 all tasks parked on that descriptor, preventing descriptor-number reuse from
 delivering stale readiness.
 
+A task can resume on a different worker thread after any call that may park
+or yield it. Compilers may compute the address of a thread-local object,
+including `errno`, once per function, so read thread-local state after such a
+call only from a separate non-inlined function.
+
 Tests are registered with CTest. Configure with
 `-DCROUTINE_SANITIZER=address`, `undefined`, or `thread` to instrument the
 runtime with the corresponding compiler sanitizer. ThreadSanitizer builds use
