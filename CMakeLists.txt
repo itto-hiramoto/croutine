@@ -88,6 +88,12 @@ if(BUILD_TESTING)
     target_link_libraries(croutine_migration_tests PRIVATE croutine::croutine)
     add_test(NAME croutine_migration COMMAND croutine_migration_tests)
 
+    add_executable(croutine_external_wake_tests tests/external_wake_test.c)
+    target_link_libraries(croutine_external_wake_tests PRIVATE
+        croutine::croutine)
+    add_test(NAME croutine_external_wake COMMAND croutine_external_wake_tests)
+    set_tests_properties(croutine_external_wake PROPERTIES TIMEOUT 10)
+
     add_executable(croutine_queue_tests tests/task_queue_test.c src/task.c)
     target_include_directories(croutine_queue_tests PRIVATE include src)
     if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")

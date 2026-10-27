@@ -18,6 +18,7 @@ static pthread_once_t runtime_init_once = PTHREAD_ONCE_INIT;
 static bool runtime_init_ok = false;
 static bool shutdown_requested = false;
 static bool poller_waiter_active = false;
+static size_t idle_workers = 0;
 static pthread_mutex_t main_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t main_cond = PTHREAD_COND_INITIALIZER;
 static bool main_finished = false;
@@ -541,7 +542,9 @@ static void worker_loop_impl(int worker_id) {
                 break;
             }
 
+            ++idle_workers;
             pthread_cond_wait(&scheduler_cond, &scheduler_mutex);
+            --idle_workers;
         }
         pthread_mutex_unlock(&scheduler_mutex);
 
@@ -706,6 +709,9 @@ bool worker_wake_task_locked(struct Task *task, bool success) {
     }
 
     pthread_cond_signal(&scheduler_cond);
+    if (idle_workers == 0 && poller_waiter_active) {
+        (void)croutine_poller_wake();
+    }
     return true;
 }
 
