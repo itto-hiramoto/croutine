@@ -1,27 +1,45 @@
 # croutine
 
-**croutine** is an experimental **M:N threading library written in C**.
-
-The project implements a lightweight threading system similar in spirit to **Go's goroutines**, but implemented in C — hence the name **"croutine"**.
-
-> ⚠️ This repository is now archived.
-
-The implementation has been integrated into the **Kaede programming language runtime**.
+`croutine` is an experimental M:N threading runtime written in C. It
+multiplexes lightweight user-space tasks over a pool of POSIX worker threads.
 
 ## Status
 
-This repository is no longer maintained as a standalone project.
+The project is under active development toward a standalone C runtime.
 
-The implementation now lives in the Kaede runtime:
+The current implementation provides:
 
-[https://github.com/itto-hiramoto/kaede/tree/main/library/runtime](https://github.com/itto-hiramoto/kaede/tree/main/library/runtime)
+- a standalone static C library with configurable workers and task stacks;
+- cooperative M:N task scheduling with explicit startup and shutdown;
+- Linux epoll and macOS kqueue readiness polling;
+- runtime-aware non-blocking POSIX I/O helpers;
+- buffered and unbuffered channels with select support; and
+- x86_64 and AArch64 context switching.
 
-Future development will continue there.
+The public API is experimental and may still change.
 
-## About
+## Requirements
 
-`croutine` provides a lightweight threading system based on an **M:N threading model**, where many user-level threads are multiplexed over a smaller number of OS threads.
+- CMake 3.10 or later
+- A C11 compiler compatible with GCC or Clang
+- A supported POSIX environment with pthreads
 
-The project was originally developed to experiment with runtime scheduling techniques for the **Kaede programming language**.
+## Build and run
 
-As the Kaede runtime matured, the codebase was merged into the Kaede repository.
+```sh
+cmake -S . -B build
+cmake --build build
+ctest --test-dir build --output-on-failure
+./build/croutine_basic
+```
+
+See [`docs/API.md`](docs/API.md) for lifecycle and ownership rules.
+
+## Direction
+
+Development is focused on hardening the standalone runtime and extending its
+portable scheduler-aware synchronization primitives.
+
+The runtime originated as an experiment for the Kaede programming language.
+Kaede's newer runtime contains later scheduler and I/O work that can inform
+croutine's standalone implementation.
